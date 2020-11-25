@@ -20,10 +20,14 @@ const modbus = new __modbus({
 			value: 30,
 			type: 'int16', // length is 1 WORD
 		},
+		{
+			value: 2130706431,
+			type: 'int32', // length is 2 WORDS
+		},
 	];
 
-	for(const _data of data){
-		const bytes = modbus.numToWords(2.545, 'float'); // convert value into array of bytes
+	for(const item of data){
+		const bytes = modbus.numToWords(item.value, item.type); // convert value into array of bytes
 		values.push(...bytes);
 	}
 
@@ -31,8 +35,8 @@ const modbus = new __modbus({
 
 	console.log('Wrtie status:', write);
 
-	const read = await modbus.readHoldingRegisters(0x01, 2); // read from address 0x01 with length of 2 WORDS
-	const number = modbus.wordsToNum(read, 'float')
+	const read = await modbus.readHoldingRegisters(0x04, 2); // read from address 0x01 with length of 2 WORDS
+	const number = modbus.wordsToNum(read, 'int32')
 
 	console.log('Read float:', number);
 })();
