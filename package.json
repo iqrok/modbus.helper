@@ -1,0 +1,25 @@
+{
+  "name": "@iqrok/modbus.helper",
+  "version": "0.1.0",
+  "description": "Modbus helper. Reading and writing via modbus-serial package",
+  "main": "src/class/modbus.class.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iqrok/modbus.helper.git"
+  },
+  "keywords": [
+    "modbus"
+  ],
+  "author": "iqrok",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/iqrok/modbus.helper/issues"
+  },
+  "homepage": "https://github.com/iqrok/modbus.helper#readme",
+  "dependencies": {
+    "modbus-serial": "^8.0.1"
+  }
+}
