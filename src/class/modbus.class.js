@@ -200,9 +200,9 @@ class modbus extends EventEmitter {
 				(arr[self.config.byteOrder[1]] << 8 | arr[self.config.byteOrder[0]]),
 			];
 
-		return type == 'WORD' ?
-			(self.config.byteOrder[0] > self.config.byteOrder[3] ? [WORDS[0]] : [WORDS[1]]) : // if byteOrder-0 > byteOrder-3, assume it Little Endian
-			WORDS;
+		return type == 'WORD'
+			? (self.config.byteOrder[0] > self.config.byteOrder[3] ? [WORDS[0]] : [WORDS[1]]) // if byteOrder-0 > byteOrder-3, assume it Little Endian
+			: WORDS;
 	};
 
 	floatToWords(num){
@@ -250,55 +250,89 @@ class modbus extends EventEmitter {
 	wordsToNum(__buffer,type, mode = "read", digits = undefined){
 		const self = this;
 
-		if(!type){
-			throw "wordsToNum() : type must be defined";
+		if(!type || typeof(type) !== 'string'){
+			throw "wordsToNum() : type must be string";
 		}
 
 		if(mode != "read" && mode != "write"){
 			throw "wordsToNum() : mode must be 'read' or 'write'";
 		}
 
-		if(type === "int32"){
-			if(mode === "read"){
-				__buffer = Buffer.from([
-						__buffer[self.config.byteOrder[0]],
-						__buffer[self.config.byteOrder[1]],
-						__buffer[self.config.byteOrder[2]],
-						__buffer[self.config.byteOrder[3]],
-					]);
-			}
-			return __buffer.readInt32BE();
+		if(mode === "read" && self.byteLength(type) > 2){
+			__buffer = Buffer.from([
+					__buffer[self.config.byteOrder[0]],
+					__buffer[self.config.byteOrder[1]],
+					__buffer[self.config.byteOrder[2]],
+					__buffer[self.config.byteOrder[3]],
+				]);
 		}
-		else if(type === "int16"){
-			return __buffer.readInt16BE();
-		}
-		else{
-			if(mode === "read"){
-				__buffer = Buffer.from([
-						__buffer[self.config.byteOrder[0]],
-						__buffer[self.config.byteOrder[1]],
-						__buffer[self.config.byteOrder[2]],
-						__buffer[self.config.byteOrder[3]],
-					]);
+
+		switch(type.toUpperCase()){
+			case 'INT16': {
+				return __buffer.readInt16BE();
+				break;
 			}
 
-			return +__buffer.readFloatBE().toFixed(digits == undefined ? self.config.decimalDigits : digits); // assume it's float
+			case 'UINT16': {
+				return __buffer.readUInt16BE();
+				break;
+			}
+
+			case 'INT32': {
+				return __buffer.readInt32BE();
+				break;
+			}
+
+			case 'UINT32': {
+				return __buffer.readUInt32BE();
+				break;
+			}
+
+			case 'FLOAT':
+			case 'FLOAT32': {
+				return +__buffer.readFloatBE().toFixed(digits == undefined ? self.config.decimalDigits : digits);
+				break;
+			}
+
+			default: {
+				return __buffer.readUInt32BE();
+				break;
+			}
 		}
 	};
 
 	byteLength(type){
-		if(!type){
-			throw "wordsToNum() : type must be defined";
+		if(!type || typeof(type) !== 'string'){
+			throw "byteLength() : type must be string";
 		}
 
-		if(type === "int32"){
-			return 4;
-		}
-		else if(type === "int16"){
-			return 2;
-		}
-		else{
-			return 4; // assume it's float
+		switch(type.toUpperCase()){
+			case 'INT16':
+			case 'UINT16': {
+				return 2;
+				break;
+			}
+
+			case 'FLOAT':
+			case 'FLOAT32':
+			case 'INT32':
+			case 'UINT32': {
+				return 4;
+				break;
+			}
+
+			case 'DOUBLE':
+			case 'FLOAT64':
+			case 'INT64':
+			case 'UINT64': {
+				return 8;
+				break;
+			}
+
+			default: {
+				return 4;
+				break;
+			};
 		}
 	};
 }
