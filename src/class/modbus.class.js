@@ -1,63 +1,122 @@
-const EventEmitter = require('events');
-const ModbusRTU = require("modbus-serial");
+const ModbusRTU = require('modbus-serial');
 
-'use strict;'
+'use strict';
 
 function _round(num, digits = 2){
 	const pow = 10 ** digits;
 	return Math.round((num + Number.EPSILON) * pow) / pow;
 }
 
-class modbus extends EventEmitter {
-	constructor( modbusConfig ) {
-		super();
+class modbus {
+	constructor( config ) {
 		const self = this;
 		self.config = {
-				ip : modbusConfig.ip,
-				port : modbusConfig.port,
-				id : modbusConfig.id,
-				byteOrder : modbusConfig.byteOrder || [2,3,0,1],
-				decimalDigits : modbusConfig.decimalDigits || 3,
-				debug : modbusConfig.debug ? modbusConfig.debug : false,
-				timeout : modbusConfig.timeout || 100,
+				ip: config.ip,
+				port: config.port,
+				baud: config.baud,
+				id: config.id,
+				byteOrder: config.byteOrder || [2,3,0,1],
+				decimalDigits: config.decimalDigits || 3,
+				debug: config.debug ? config.debug: false,
+				timeout: config.timeout || 100,
 			};
 
 		self._client = new ModbusRTU();
 
+		self._connectionType = (function(){
+				if(String(self.config.ip).match(/\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}\b/)){
+					self._connectionOpt = {
+						dst: self.config.ip,
+						options: {
+							port: self.config.port == undefined ? 502 : self.config.port,
+						},
+					};
+
+					return 'TCP';
+				}
+
+				if(typeof(self.config.port) === 'string' && typeof(self.config.baud) === 'number'){
+					self._connectionOpt = {
+						dst: self.config.port,
+						options: {
+							baudRate: self.config.baud == undefined ? 9600 : self.config.baud,
+						},
+					};
+
+					return 'RTU';
+				}
+			})();
+
 		self._isLittleEndian = (function() {
-			const buffer = new ArrayBuffer(2);
+				const buffer = new ArrayBuffer(2);
+				new DataView(buffer).setInt16(0, 256, true);  // littleEndian
 
-			new DataView(buffer).setInt16(0, 256, true);  // littleEndian
-
-			return new Int16Array(buffer)[0] === 256; // Int16Array uses the platform's endianness.
-		})();
+				return new Int16Array(buffer)[0] === 256; // Int16Array uses the platform's endianness.
+			})();
 	}
 
 	_openClient(){
 		const self = this;
 
 		return new Promise(function(resolve, reject) {
-			self._client.connectTCP(self.config.ip, {port : self.config.port}, function(err){
+			switch(self._connectionType){
+				case 'TCP': {
+					self._client.connectTCP(self._connectionOpt.dst, self._connectionOpt.options, function(err){
+						self._client.setID(self.config.id);
+						self._client.setTimeout(self.config.timeout);
 
-				self._client.setID(self.config.id);
-				self._client.setTimeout(self.config.timeout);
+						if(self._client.isOpen){
+							resolve(true);
+							return;
+						}
 
-				if(self._client.isOpen){
-					resolve(true);
-					return;
+						if(err){
+							if(self.config.debug){
+								console.error('client open Error', err);
+							}
+
+							self._client.close();
+							return reject(err);
+						}
+
+						resolve(self._client.isOpen);
+						return;
+					});
+
+					break;
 				}
 
-				if(err){
-					if(self.config.debug){
-						console.error("client open Error",err);
-					}
+				case 'RTU': {
+					self._client.connectRTU(self._connectionOpt.dst, self._connectionOpt.options, function(err){
+						self._client.setID(self.config.id);
+						self._client.setTimeout(self.config.timeout);
 
-					self._client.close();
-					return reject(err);
+						if(self._client.isOpen){
+							resolve(true);
+							return;
+						}
+
+						if(err){
+							if(self.config.debug){
+								console.error('client open Error', err);
+							}
+
+							self._client.close();
+							return reject(err);
+						}
+
+						resolve(self._client.isOpen);
+						return;
+					});
+
+					break;
 				}
 
-				return resolve(self._client.isOpen);
-			});
+				default:{
+					reject('Error: Connection Type is not defined.', self._connectionType)
+					break;
+				}
+			}
 		});
 	};
 
@@ -67,20 +126,18 @@ class modbus extends EventEmitter {
 		return self._openClient()
 			.then(response => {
 				return self._client.readInputRegisters(addr, len)
-					.then(data => {
-						return Buffer.from(data.buffer);
-					})
+					.then(data => Buffer.from(data.buffer))
 					.catch(error => {
 						if(self.config.debug){
-							console.error('client.readInputRegisters error :',addr,error);
+							console.error('client.readInputRegisters error :', addr, error);
 						}
 
-						return Promise.reject(false);
+						return Promise.reject(error);
 					});
 			})
 			.catch(error => {
 				if(self.config.debug){
-					console.error('readInputRegisters error :',addr,error);
+					console.error('readInputRegisters error :', addr, error);
 				}
 
 				self._client.close();
@@ -97,20 +154,18 @@ class modbus extends EventEmitter {
 		return self._openClient()
 			.then(response => {
 				return self._client.readHoldingRegisters(addr, len)
-					.then(data => {
-						return Buffer.from(data.buffer);
-					})
+					.then(data => Buffer.from(data.buffer))
 					.catch(error => {
 						if(self.config.debug){
-							console.error('client.readHoldingRegisters error :',addr,error);
+							console.error('client.readHoldingRegisters error :', addr, error);
 						}
 
-						return Promise.reject(false);
+						return Promise.reject(error);
 					});
 			})
 			.catch(error => {
 				if(self.config.debug){
-					console.error('readHoldingRegisters error :',addr,error);
+					console.error('readHoldingRegisters error :', addr, error);
 				}
 
 				self._client.close();
@@ -127,20 +182,18 @@ class modbus extends EventEmitter {
 		return self._openClient()
 			.then(response => {
 				return self._client.writeRegister(addr, value)
-					.then(data => {
-						return data;
-					})
+					.then(data => data)
 					.catch(error => {
 						if(self.config.debug){
-							console.error('client.writeRegisters error :',addr,error);
+							console.error('client.writeRegisters error :', addr, error);
 						}
 
-						return Promise.reject(false);
+						return Promise.reject(error);
 					});
 			})
 			.catch(error => {
 				if(self.config.debug){
-					console.error('writeRegister error :',addr,error);
+					console.error('writeRegister error :', addr, error);
 				}
 
 				self._client.close();
@@ -158,20 +211,18 @@ class modbus extends EventEmitter {
 			.then(response => {
 				self._client.setTimeout(self.config.timeout);
 				return self._client.writeRegisters(addr, value)
-					.then(data => {
-						return data;
-					})
+					.then(data => data)
 					.catch(error => {
 						if(self.config.debug){
-							console.error('client.writeRegisters error :',addr,error);
+							console.error('client.writeRegisters error :', addr, error);
 						}
 
-						return Promise.reject(false);
+						return Promise.reject(error);
 					});
 			})
 			.catch(error => {
 				if(self.config.debug){
-					console.error('writeRegisters error :',addr,error);
+					console.error('writeRegisters error :', addr, error);
 				}
 
 				self._client.close();
@@ -199,7 +250,7 @@ class modbus extends EventEmitter {
 
 		return type == 'DWORD'
 			? WORDS
-			: (self.config.byteOrder[0] > self.config.byteOrder[3] ? [WORDS[0]] : [WORDS[1]]); // if byteOrder-0 > byteOrder-3, assume it Little Endian
+			: (self.config.byteOrder[0] > self.config.byteOrder[3] ? [WORDS[0]] : [WORDS[1]]); // if byteOrder-0 > byteOrder-3, assume it's Little Endian
 	};
 
 	floatToWords(num){
@@ -242,19 +293,19 @@ class modbus extends EventEmitter {
 		const self = this;
 
 		if(!type || typeof(type) !== 'string'){
-			throw "wordsToNum() : type must be string";
+			throw 'numToWords() : type must be string';
 		}
 
 		switch(type.toUpperCase()){
 			case 'UINT16':
 			case 'INT16': {
-				return self.intToWords(value, "WORD");
+				return self.intToWords(value, 'WORD');
 				break;
 			}
 
 			case 'UINT32':
 			case 'INT32': {
-				return self.intToWords(value, "DWORD");
+				return self.intToWords(value, 'DWORD');
 				break;
 			}
 
@@ -277,18 +328,18 @@ class modbus extends EventEmitter {
 		}
 	};
 
-	wordsToNum(__buffer,type, mode = "read", digits = undefined){
+	wordsToNum(__buffer,type, mode = 'read', digits = undefined){
 		const self = this;
 
 		if(!type || typeof(type) !== 'string'){
-			throw "wordsToNum() : type must be string";
+			throw 'wordsToNum() : type must be string';
 		}
 
-		if(mode != "read" && mode != "write"){
-			throw "wordsToNum() : mode must be 'read' or 'write'";
+		if(mode != 'read' && mode != 'write'){
+			throw 'wordsToNum() : mode must be "read" or "write"';
 		}
 
-		if(mode === "read"){
+		if(mode === 'read'){
 			switch(self.byteLength(type)){
 				case 8: {
 					__buffer = Buffer.from([
@@ -358,7 +409,7 @@ class modbus extends EventEmitter {
 
 	byteLength(type){
 		if(!type || typeof(type) !== 'string'){
-			throw "byteLength() : type must be string";
+			throw 'byteLength() : type must be string';
 		}
 
 		switch(type.toUpperCase()){
