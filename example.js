@@ -1,0 +1,62 @@
+const __modbus = require('./');
+const modbus = new __modbus({
+		ip: '127.0.0.1',
+		port: 502,
+		id: 1,
+		byteOrder: [2,3,0,1],
+		decimalDigits: 6,
+		debug: true,
+		timeout: 1000,
+	});
+
+console.log('is Little Endian?', modbus._isLittleEndian,'\n'); // true or false
+
+const numbers = [
+	{
+		value: -32768,
+		type: 'int16',
+	},
+	{
+		value: -32768,
+		type: 'uint16',
+	},
+	{
+		value: 123456,
+		type: 'int32',
+	},
+	{
+		value: -123456,
+		type: 'int32',
+	},
+	{
+		value: 0.123456,
+		type: 'float32',
+	},
+	{
+		value: 0.1234567890123456789,
+		type: 'float64',
+	},
+];
+
+(async () => {
+	const values = [];
+	let address = 0;
+
+	for(const tmp of numbers){
+		console.log('address:', address);
+
+		const value = modbus.numToWords(tmp.value, tmp.type);
+		console.log('bytes:',value.map(item => item.toString(16)));
+
+		const write = await modbus.writeRegisters(address,[...value]);
+		console.log('write:',write);
+
+		const read = await modbus.readHoldingRegisters(address, modbus.wordsLength(tmp.type));
+		const number = modbus.wordsToNum(read, tmp.type);
+		console.log('read:', read);
+		console.log(tmp.value, number, number == tmp.value);
+		console.log('==  ==================================\n');
+
+		address += modbus.wordsLength(tmp.type);
+	}
+})();
