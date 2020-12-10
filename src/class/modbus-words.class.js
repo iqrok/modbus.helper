@@ -1,16 +1,34 @@
 'use strict';
 
+/**
+ * Round floating number to n digits
+ * @private
+ * @param {number} number - number to be rounded
+ * @param {number} [digits=2] - number of decimal digits
+ * @return {number} - Rounded Number
+ * */
 function _round(num, digits = 2){
 	const pow = 10 ** digits;
 	return Math.round((num + Number.EPSILON) * pow) / pow;
 }
 
 class __words{
+	/**
+	 * @constructor
+	 * @param {number[]} byteOrder - byte order of modbus register
+	 * @param {number} decimalDigits - number of decimals for floating point
+	 */
 	constructor({byteOrder, decimalDigits}){
-		this.initialize({byteOrder, decimalDigits});
+		this._initialize({byteOrder, decimalDigits});
 	}
 
-	initialize({byteOrder, decimalDigits}){
+	/**
+	 * initialize configuration
+	 * @private
+	 * @param {number[]} byteOrder - byte order of modbus register
+	 * @param {number} decimalDigits - number of decimals for floating point
+	 */
+	_initialize({byteOrder, decimalDigits}){
 		const self = this;
 		self.config = {
 				byteOrder,
@@ -18,7 +36,15 @@ class __words{
 			};
 	};
 
-	intToWords(num, type = 'WORD') {
+	/**
+	 * Convert integer number to array of unsigned integer 16-bits numbers
+	 * @typedef {"WORD"|"DWORD"} wordType
+	 * @private
+	 * @param {number} num - number to be converted
+	 * @param {wordType} [type='WORD'] - number type is either WORD or DWORD
+	 * @return {number[]} - array of uint16 numbers
+	 */
+	_intToWords(num, type = 'WORD') {
 		const self = this;
 
 		const arr = new Uint8Array([
@@ -38,7 +64,13 @@ class __words{
 			: (self.config.byteOrder[0] > self.config.byteOrder[3] ? [WORDS[0]] : [WORDS[1]]); // if byteOrder-0 > byteOrder-3, assume it's Little Endian
 	};
 
-	floatToWords(num){
+	/**
+	 * Convert floating number to array of unsigned integer 16-bits numbers
+	 * @private
+	 * @param {number} num - number to be converted
+	 * @return {number[]} - array of uint16 numbers
+	 */
+	_floatToWords(num){
 		const self = this;
 
 		const buffer = new ArrayBuffer(4);
@@ -55,7 +87,13 @@ class __words{
 		];
 	};
 
-	doubleToWords(num){
+	/**
+	 * Convert double (float 64-bits) number to array of unsigned integer 16-bits numbers
+	 * @private
+	 * @param {number} num - number to be converted
+	 * @return {number[]} - array of uint16 numbers
+	 */
+	_doubleToWords(num){
 		const self = this;
 
 		const buffer = new ArrayBuffer(8);
@@ -74,7 +112,14 @@ class __words{
 		];
 	};
 
-	numToWords(value = 0,type){
+	/**
+	 * Convert number into array of unsigned integer 16-bits numbers
+	 * @typedef {"UINT16"|"INT16"|"UINT32"|"INT32"|"FLOAT"|"FLOAT32"|"DOUBLE"|"FLOAT64"} numberType
+	 * @param {number} number - number to be converted
+	 * @param {numberType} type - number data type
+	 * @return {number[]} - array of uint16 numbers
+	 */
+	numToWords(number, type){
 		const self = this;
 
 		if(!type || typeof(type) !== 'string'){
@@ -84,25 +129,25 @@ class __words{
 		switch(type.toUpperCase()){
 			case 'UINT16':
 			case 'INT16': {
-				return self.intToWords(value, 'WORD');
+				return self._intToWords(number, 'WORD');
 				break;
 			}
 
 			case 'UINT32':
 			case 'INT32': {
-				return self.intToWords(value, 'DWORD');
+				return self._intToWords(number, 'DWORD');
 				break;
 			}
 
 			case 'FLOAT':
 			case 'FLOAT32': {
-				return self.floatToWords(value);
+				return self._floatToWords(number);
 				break;
 			}
 
 			case 'DOUBLE':
 			case 'FLOAT64': {
-				return self.doubleToWords(value);
+				return self._doubleToWords(number);
 				break;
 			}
 
@@ -113,7 +158,16 @@ class __words{
 		}
 	};
 
-	wordsToNum(__buffer,type, mode = 'read', digits = undefined){
+	/**
+	 * Convert Words received from modbus to number
+	 * @typedef {"read"|"write"} wordsConvertType
+	 * @param {number[]} words - array of uint16 numbers to be converted
+	 * @param {numberType} type - number data type
+	 * @param {wordsConvertType} [mode="read"] - if type is "read" then the order of bytes will be reversed
+	 * @param {number} [digits] - number of decimal digits, will be default to set decimalDigits in config if left undefined
+	 * @return {number} - converted number
+	 */
+	wordsToNum(words, type, mode = 'read', digits){
 		const self = this;
 
 		if(!type || typeof(type) !== 'string'){
@@ -127,25 +181,25 @@ class __words{
 		if(mode === 'read'){
 			switch(self.byteLength(type)){
 				case 8: {
-					__buffer = Buffer.from([
-							__buffer[4 + self.config.byteOrder[0]],
-							__buffer[4 + self.config.byteOrder[1]],
-							__buffer[4 + self.config.byteOrder[2]],
-							__buffer[4 + self.config.byteOrder[3]],
-							__buffer[self.config.byteOrder[0]],
-							__buffer[self.config.byteOrder[1]],
-							__buffer[self.config.byteOrder[2]],
-							__buffer[self.config.byteOrder[3]],
+					words = Buffer.from([
+							words[4 + self.config.byteOrder[0]],
+							words[4 + self.config.byteOrder[1]],
+							words[4 + self.config.byteOrder[2]],
+							words[4 + self.config.byteOrder[3]],
+							words[self.config.byteOrder[0]],
+							words[self.config.byteOrder[1]],
+							words[self.config.byteOrder[2]],
+							words[self.config.byteOrder[3]],
 						]);
 
 					break;
 				}
 				case 4: {
-					__buffer = Buffer.from([
-							__buffer[self.config.byteOrder[0]],
-							__buffer[self.config.byteOrder[1]],
-							__buffer[self.config.byteOrder[2]],
-							__buffer[self.config.byteOrder[3]],
+					words = Buffer.from([
+							words[self.config.byteOrder[0]],
+							words[self.config.byteOrder[1]],
+							words[self.config.byteOrder[2]],
+							words[self.config.byteOrder[3]],
 						]);
 					break;
 				}
@@ -154,44 +208,49 @@ class __words{
 
 		switch(type.toUpperCase()){
 			case 'INT16': {
-				return __buffer.readInt16BE();
+				return words.readInt16BE();
 				break;
 			}
 
 			case 'UINT16': {
-				return __buffer.readUInt16BE();
+				return words.readUInt16BE();
 				break;
 			}
 
 			case 'INT32': {
-				return __buffer.readInt32BE();
+				return words.readInt32BE();
 				break;
 			}
 
 			case 'UINT32': {
-				return __buffer.readUInt32BE();
+				return words.readUInt32BE();
 				break;
 			}
 
 			case 'FLOAT':
 			case 'FLOAT32': {
-				return _round(__buffer.readFloatBE(), digits == undefined ? self.config.decimalDigits : digits);
+				return _round(words.readFloatBE(), digits == undefined ? self.config.decimalDigits : digits);
 				break;
 			}
 
 			case 'DOUBLE':
 			case 'FLOAT64': {
-				return _round(__buffer.readDoubleBE(), digits == undefined ? self.config.decimalDigits : digits);
+				return _round(words.readDoubleBE(), digits == undefined ? self.config.decimalDigits : digits);
 				break;
 			}
 
 			default: {
-				return __buffer.readUInt32BE();
+				return words.readUInt32BE();
 				break;
 			}
 		}
 	};
 
+	/**
+	 * Size of data type in bytes
+	 * @param {numberType} type - number data type
+	 * @return {number} - data type size in bytes
+	 */
 	byteLength(type){
 		if(!type || typeof(type) !== 'string'){
 			throw 'byteLength() : type must be string';
@@ -219,12 +278,17 @@ class __words{
 			}
 
 			default: {
-				return 4;
+				return 0;
 				break;
 			};
 		}
 	};
 
+	/**
+	 * Size of data type in words
+	 * @param {numberType} type - number data type
+	 * @return {number} - data type size in words
+	 */
 	wordsLength(type){
 		const self = this;
 		return self.byteLength(type) / 2;

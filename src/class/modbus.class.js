@@ -4,23 +4,37 @@ const modbusWords = require('./modbus-words.class.js');
 'use strict';
 
 class modbus extends modbusWords{
-	constructor( config ) {
-		super(config);
+	/**
+	 * @constructor
+	 * @param {string} ip - IP destination for modbus TCP
+	 * @param {number|string} port - Port number for modbus TCP or path to serial port for modbus RTU
+	 * @param {number} baud - Baud Rate for modbus RTU
+	 * @param {number[]} [byteOrder=[2,3,0,1]] - byte order of modbus register. Default to [2,3,0,1] because registers are usually Little Endian as Words and Big Endian as bytes
+	 * @param {number} [decimalDigits=3] - number of decimals for floating point
+	 * @param {number} [timeout=100] - timeout in ms
+	 * @param {boolean} [debug=false] - Print debug message
+	 */
+	constructor({ip, port, baud, id = 1, byteOrder = [2,3,0,1], decimalDigits = 3, debug = false, timeout = 100}) {
+		super({byteOrder, decimalDigits});
 		const self = this;
 
 		self.config = {
-				ip: config.ip,
-				port: config.port,
-				baud: config.baud,
-				id: config.id,
-				byteOrder: config.byteOrder || [2,3,0,1],
-				decimalDigits: config.decimalDigits || 3,
-				debug: config.debug ? config.debug: false,
-				timeout: config.timeout || 100,
+				ip,
+				port,
+				baud,
+				id,
+				byteOrder,
+				decimalDigits,
+				debug,
+				timeout,
 			};
 
 		self._client = new ModbusRTU();
 
+		/**
+		 * Connection type either TCP or RTU
+		 * Automatically set based on IP, port, and baud values
+		 * */
 		self._connectionType = (function(){
 				if(String(self.config.ip).match(/\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}\b/)){
 					self._connectionOpt = {
@@ -45,6 +59,9 @@ class modbus extends modbusWords{
 				}
 			})();
 
+		/**
+		 * check if current process is in little Endian machine or not
+		 * */
 		self._isLittleEndian = (function() {
 				const buffer = new ArrayBuffer(2);
 				new DataView(buffer).setInt16(0, 256, true);  // littleEndian
@@ -53,6 +70,10 @@ class modbus extends modbusWords{
 			})();
 	}
 
+	/**
+	 * open connection to target modbus server
+	 * @private
+	 * */
 	_openClient(){
 		const self = this;
 
@@ -118,6 +139,12 @@ class modbus extends modbusWords{
 		});
 	};
 
+	/**
+	 * Read Input Register
+	 * @param {number} addr - address to read from
+	 * @param {number} [len=1] - number of addresses to read
+	 * @return {Promise.<Buffer>|Promise.<Boolean>} - resolve false if reading is failed, otherwise resolve read Buffer
+	 * */
 	readInputRegisters(addr,len = 1){
 		const self = this;
 
@@ -146,6 +173,12 @@ class modbus extends modbusWords{
 			});
 	};
 
+	/**
+	 * Read Holding Register
+	 * @param {number} addr - address to read from
+	 * @param {number} [len=1] - number of addresses to read
+	 * @return {Promise.<Buffer>|Promise.<Boolean>} - resolve false if reading is failed, otherwise resolve read Buffer
+	 * */
 	readHoldingRegisters(addr,len = 1){
 		const self = this;
 
@@ -174,6 +207,12 @@ class modbus extends modbusWords{
 			});
 	};
 
+	/**
+	 * Write single Holding Register
+	 * @param {number} addr - address to write
+	 * @param {number} value - value to write
+	 * @return {Promise.<Object>|Promise.<Boolean>} - resolve false if reading is failed, otherwise resolve address and length of written registers
+	 * */
 	writeRegister(addr,value){
 		const self = this;
 
@@ -202,6 +241,12 @@ class modbus extends modbusWords{
 			});
 	};
 
+	/**
+	 * Write multiple Holding Registers
+	 * @param {number} addr - address to write
+	 * @param {number[]} value - array of values to write
+	 * @return {Promise.<Object>|Promise.<Boolean>} - resolve false if reading is failed, otherwise resolve address and length of written registers
+	 * */
 	writeRegisters(addr,value){
 		const self = this;
 
