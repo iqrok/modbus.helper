@@ -152,7 +152,7 @@ class modbusWords{
 			}
 
 			default: {
-				return __buffer.readUInt16LE();
+				return 0;
 				break;
 			}
 		}
@@ -240,7 +240,7 @@ class modbusWords{
 			}
 
 			default: {
-				return words.readUInt32LE();
+				return words.readUInt16LE();
 				break;
 			}
 		}
