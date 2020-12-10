@@ -12,7 +12,7 @@ function _round(num, digits = 2){
 	return Math.round((num + Number.EPSILON) * pow) / pow;
 }
 
-class __words{
+class modbusWords{
 	/**
 	 * @constructor
 	 * @param {number[]} byteOrder - byte order of modbus register
@@ -55,13 +55,13 @@ class __words{
 		]);
 
 		const WORDS =[
-				(arr[self.config.byteOrder[3]] << 8 | arr[self.config.byteOrder[2]]),
-				(arr[self.config.byteOrder[1]] << 8 | arr[self.config.byteOrder[0]]),
-			];
+			(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
+			(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
+		];
 
 		return type == 'DWORD'
 			? WORDS
-			: (self.config.byteOrder[0] > self.config.byteOrder[3] ? [WORDS[0]] : [WORDS[1]]); // if byteOrder-0 > byteOrder-3, assume it's Little Endian
+			: [WORDS[0]]; // if byteOrder-0 > byteOrder-3, assume it's Little Endian
 	};
 
 	/**
@@ -82,8 +82,8 @@ class __words{
 		const arr = self._isLittleEndian ? intView : intView.reverse();
 
 		return [
-			(arr[self.config.byteOrder[3]] << 8 | arr[self.config.byteOrder[2]]),
-			(arr[self.config.byteOrder[1]] << 8 | arr[self.config.byteOrder[0]]),
+			(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
+			(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
 		];
 	};
 
@@ -105,10 +105,10 @@ class __words{
 		const arr = self._isLittleEndian ? intView : intView.reverse();
 
 		return [
-			(arr[self.config.byteOrder[3]] << 8 | arr[self.config.byteOrder[2]]),
-			(arr[self.config.byteOrder[1]] << 8 | arr[self.config.byteOrder[0]]),
-			(arr[4 + self.config.byteOrder[3]] << 8 | arr[4 + self.config.byteOrder[2]]),
-			(arr[4 + self.config.byteOrder[1]] << 8 | arr[4 + self.config.byteOrder[0]]),
+			(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
+			(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
+			(arr[4 + self.config.byteOrder[0]] << 8 | arr[4 + self.config.byteOrder[1]]),
+			(arr[4 + self.config.byteOrder[2]] << 8 | arr[4 + self.config.byteOrder[3]]),
 		];
 	};
 
@@ -152,7 +152,7 @@ class __words{
 			}
 
 			default: {
-				return __buffer.readUInt32BE();
+				return __buffer.readUInt16LE();
 				break;
 			}
 		}
@@ -182,14 +182,14 @@ class __words{
 			switch(self.byteLength(type)){
 				case 8: {
 					words = Buffer.from([
-							words[4 + self.config.byteOrder[0]],
-							words[4 + self.config.byteOrder[1]],
-							words[4 + self.config.byteOrder[2]],
-							words[4 + self.config.byteOrder[3]],
 							words[self.config.byteOrder[0]],
 							words[self.config.byteOrder[1]],
 							words[self.config.byteOrder[2]],
 							words[self.config.byteOrder[3]],
+							words[4 + self.config.byteOrder[0]],
+							words[4 + self.config.byteOrder[1]],
+							words[4 + self.config.byteOrder[2]],
+							words[4 + self.config.byteOrder[3]],
 						]);
 
 					break;
@@ -208,39 +208,39 @@ class __words{
 
 		switch(type.toUpperCase()){
 			case 'INT16': {
-				return words.readInt16BE();
+				return words.readInt16LE();
 				break;
 			}
 
 			case 'UINT16': {
-				return words.readUInt16BE();
+				return words.readUInt16LE();
 				break;
 			}
 
 			case 'INT32': {
-				return words.readInt32BE();
+				return words.readInt32LE();
 				break;
 			}
 
 			case 'UINT32': {
-				return words.readUInt32BE();
+				return words.readUInt32LE();
 				break;
 			}
 
 			case 'FLOAT':
 			case 'FLOAT32': {
-				return _round(words.readFloatBE(), digits == undefined ? self.config.decimalDigits : digits);
+				return _round(words.readFloatLE(), digits == undefined ? self.config.decimalDigits : digits);
 				break;
 			}
 
 			case 'DOUBLE':
 			case 'FLOAT64': {
-				return _round(words.readDoubleBE(), digits == undefined ? self.config.decimalDigits : digits);
+				return _round(words.readDoubleLE(), digits == undefined ? self.config.decimalDigits : digits);
 				break;
 			}
 
 			default: {
-				return words.readUInt32BE();
+				return words.readUInt32LE();
 				break;
 			}
 		}
@@ -295,4 +295,4 @@ class __words{
 	};
 }
 
-module.exports = __words;
+module.exports = modbusWords;

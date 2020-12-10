@@ -3,7 +3,7 @@ const modbus = new __modbus({
 		ip: '127.0.0.1',
 		port: 502,
 		id: 1,
-		byteOrder: [2,3,0,1],
+		byteOrder: [0,1,2,3],
 		decimalDigits: 6,
 		debug: true,
 		timeout: 1000,
@@ -13,11 +13,11 @@ console.log('is Little Endian?', modbus._isLittleEndian,'\n'); // true or false
 
 const numbers = [
 	{
-		value: -32768,
+		value: -32,
 		type: 'int16',
 	},
 	{
-		value: -32768,
+		value: -32,
 		type: 'uint16',
 	},
 	{
@@ -55,7 +55,7 @@ const numbers = [
 		const number = modbus.wordsToNum(read, tmp.type);
 		console.log('read:', read);
 		console.log(tmp.value, number, number == tmp.value);
-		console.log('==  ==================================\n');
+		console.log('==  ==================================');
 
 		address += modbus.wordsLength(tmp.type);
 	}

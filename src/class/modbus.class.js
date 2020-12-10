@@ -3,18 +3,22 @@ const modbusWords = require('./modbus-words.class.js');
 
 'use strict';
 
+/**
+ * @class
+ * @extends modbusWords
+ * */
 class modbus extends modbusWords{
 	/**
 	 * @constructor
 	 * @param {string} ip - IP destination for modbus TCP
 	 * @param {number|string} port - Port number for modbus TCP or path to serial port for modbus RTU
 	 * @param {number} baud - Baud Rate for modbus RTU
-	 * @param {number[]} [byteOrder=[2,3,0,1]] - byte order of modbus register. Default to [2,3,0,1] because registers are usually Little Endian as Words and Big Endian as bytes
+	 * @param {number[]} [byteOrder=[0,1,2,3]] - byte order of modbus register. Default to [0,1,2,3] because registers are usually Little Endian as Words and Big Endian as bytes
 	 * @param {number} [decimalDigits=3] - number of decimals for floating point
 	 * @param {number} [timeout=100] - timeout in ms
 	 * @param {boolean} [debug=false] - Print debug message
 	 */
-	constructor({ip, port, baud, id = 1, byteOrder = [2,3,0,1], decimalDigits = 3, debug = false, timeout = 100}) {
+	constructor({ip, port, baud, id = 1, byteOrder = [0,1,2,3], decimalDigits = 3, debug = false, timeout = 100}) {
 		super({byteOrder, decimalDigits});
 		const self = this;
 
@@ -51,7 +55,7 @@ class modbus extends modbusWords{
 					self._connectionOpt = {
 						dst: self.config.port,
 						options: {
-							baudRate: self.config.baud == undefined ? 9600 : self.config.baud,
+							baudRate: self.config.baud,
 						},
 					};
 
