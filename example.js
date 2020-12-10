@@ -21,6 +21,14 @@ const numbers = [
 		type: 'uint16',
 	},
 	{
+		value: 64,
+		type: 'uint16',
+	},
+	{
+		value: 0xff11eeaa,
+		type: 'uint32',
+	},
+	{
 		value: 123456,
 		type: 'int32',
 	},
@@ -54,6 +62,7 @@ const numbers = [
 		const read = await modbus.readHoldingRegisters(address, modbus.wordsLength(tmp.type));
 		const number = modbus.wordsToNum(read, tmp.type);
 		console.log('read:', read);
+		console.log('type:', tmp.type);
 		console.log(tmp.value, number, number == tmp.value);
 		console.log('==  ==================================');
 
