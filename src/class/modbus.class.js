@@ -13,7 +13,7 @@ class modbus extends modbusWords{
 	 * @param {string} ip - IP destination for modbus TCP
 	 * @param {number|string} port - Port number for modbus TCP or path to serial port for modbus RTU
 	 * @param {number} baud - Baud Rate for modbus RTU
-	 * @param {number[]} [byteOrder=[0,1,2,3]] - byte order of modbus register. Default to [0,1,2,3] because registers are usually Little Endian as Words and Big Endian as bytes
+	 * @param {number[]} [byteOrder=[0,1,2,3]] - byte order of modbus register
 	 * @param {number} [decimalDigits=3] - number of decimals for floating point
 	 * @param {number} [timeout=100] - timeout in ms
 	 * @param {boolean} [debug=false] - Print debug message
@@ -40,7 +40,7 @@ class modbus extends modbusWords{
 		 * Automatically set based on IP, port, and baud values
 		 * */
 		self._connectionType = (function(){
-				if(String(self.config.ip).match(/\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}\b/)){
+				if(typeof(self.config.ip) === 'string' && String(self.config.ip).match(/\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}\b/)){
 					self._connectionOpt = {
 						dst: self.config.ip,
 						options: {
