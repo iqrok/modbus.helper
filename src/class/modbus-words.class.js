@@ -2,9 +2,6 @@
 /**
  * @typedef {("UINT16"|"INT16"|"UINT32"|"INT32"|"FLOAT"|"FLOAT32"|"DOUBLE"|"FLOAT64")} numberType
  * */
-/**
- * @typedef {"WORD"|"DWORD"} wordType
- * */
 
 /**
  * Round floating number to n digits
@@ -50,27 +47,40 @@ class modbusWords{
 	 * Convert integer number to array of unsigned integer 16-bits numbers
 	 * @private
 	 * @param {number} num - number to be converted
-	 * @param {wordType} [type='WORD'] - number type is either WORD or DWORD
+	 * @param {number} byteLength - byte length of number
 	 * @return {number[]} - array of uint16 numbers
 	 */
-	_intToWords(num, type = 'WORD') {
+	_intToWords(num, byteLength) {
 		const self = this;
 
-		const arr = new Uint8Array([
-			 (num & 0x000000FF),
-			 (num & 0x0000FF00) >> 8,
-			 (num & 0x00FF0000) >> 16,
-			 (num & 0xFF000000) >> 24,
-		]);
+		switch(byteLength){
+			case 2: {
+				const byteArray = new Uint8Array([
+					 (num & 0x000000FF),
+					 (num & 0x0000FF00) >> 8,
+				]);
 
-		const WORDS =[
-			(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
-			(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
-		];
+				return [(byteArray[self.config.byteOrder[0]] << 8 | byteArray[self.config.byteOrder[1]])];
+				break;
+			}
 
-		return type == 'DWORD'
-			? WORDS
-			: [WORDS[0]];
+			case 4: {
+				const byteArray = new Uint8Array([
+					 (num & 0x000000FF),
+					 (num & 0x0000FF00) >> 8,
+					 (num & 0x00FF0000) >> 16,
+					 (num & 0xFF000000) >> 24,
+				]);
+
+				return [
+					(byteArray[self.config.byteOrder[0]] << 8 | byteArray[self.config.byteOrder[1]]),
+					(byteArray[self.config.byteOrder[2]] << 8 | byteArray[self.config.byteOrder[3]]),
+				];
+				break;
+			}
+		}
+
+		throw false;
 	};
 
 	/**
@@ -137,13 +147,13 @@ class modbusWords{
 		switch(type.toUpperCase()){
 			case 'UINT16':
 			case 'INT16': {
-				return self._intToWords(number, 'WORD');
+				return self._intToWords(number, self.byteLength(type));
 				break;
 			}
 
 			case 'UINT32':
 			case 'INT32': {
-				return self._intToWords(number, 'DWORD');
+				return self._intToWords(number, self.byteLength(type));
 				break;
 			}
 
