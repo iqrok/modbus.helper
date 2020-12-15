@@ -39,6 +39,12 @@ const numbers = [
 	{
 		value: 0.123456,
 		type: 'float32',
+		digits: 6,
+	},
+	{
+		value: -10.123456,
+		type: 'float32',
+		digits: 6,
 	},
 	{
 		value: 0.1234567890123456789,
@@ -63,7 +69,7 @@ const numbers = [
 		console.log('write:',write);
 
 		const read = await modbus.readHoldingRegisters(address, modbus.wordsLength(tmp.type));
-		const number = modbus.wordsToNum(read, tmp.type);
+		const number = modbus.wordsToNum(read, tmp.type, tmp.digits);
 		console.log('read:', read);
 		console.log('type:', tmp.type);
 		console.log('modbus:', tmp.value, number, number == tmp.value);

@@ -13,12 +13,12 @@ class modbus extends modbusWords{
 	 * @param {string} ip - IP destination for modbus TCP
 	 * @param {number|string} port - Port number for modbus TCP or path to serial port for modbus RTU
 	 * @param {number} baud - Baud Rate for modbus RTU
-	 * @param {number[]} [byteOrder=[0,1,2,3]] - byte order of modbus register
-	 * @param {number} [decimalDigits=3] - number of decimals for floating point
+	 * @param {number[]} [byteOrder=[1,0,3,2]] - byte order of modbus register
+	 * @param {?number} [decimalDigits] - number of decimals for floating point
 	 * @param {number} [timeout=100] - timeout in ms
 	 * @param {boolean} [debug=false] - Print debug message
 	 */
-	constructor({ip, port, baud, id = 1, byteOrder = [0,1,2,3], decimalDigits = 3, debug = false, timeout = 100}) {
+	constructor({ip, port, baud, id = 1, byteOrder = [1,0,3,2], decimalDigits, debug = false, timeout = 100}) {
 		super({byteOrder, decimalDigits});
 		const self = this;
 
