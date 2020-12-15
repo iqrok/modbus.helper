@@ -3,13 +3,13 @@ const modbus = new __modbus({
 		ip: '127.0.0.1',
 		port: 502,
 		id: 1,
-		byteOrder: [0,1,2,3],
-		decimalDigits: 6,
+		byteOrder: [1,0,3,2],
+		decimalDigits: null,
 		debug: true,
 		timeout: 1000,
 	});
 
-console.log('is Little Endian?', modbus._isLittleEndian); // true or false
+console.log('is Little Endian?', modbus.isLittleEndian); // true or false
 
 const numbers = [
 	{
@@ -70,4 +70,11 @@ const numbers = [
 
 		address += modbus.wordsLength(tmp.type);
 	}
+
+	const writeCoils = await modbus.writeCoils(0, [1,0,0,1,0]);
+	console.log('writeCoils', writeCoils);
+	const readCoils = await modbus.readCoils(0, 5);
+	console.log('readCoils', readCoils);
+	const readDiscreteInputs = await modbus.readDiscreteInputs(0, 5);
+	console.log('readDiscreteInputs', readDiscreteInputs);
 })();
