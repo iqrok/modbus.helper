@@ -37,10 +37,23 @@ class modbusWords{
 	 */
 	_initialize({byteOrder, decimalDigits}){
 		const self = this;
+
 		self.config = {
 				byteOrder,
 				decimalDigits,
 			};
+
+		self._byteOrderLength = self.config.byteOrder.length,
+
+		/**
+		 * check if current process is in little Endian machine or not
+		 * */
+		self.isLittleEndian = (function() {
+				const buffer = new ArrayBuffer(2);
+				new DataView(buffer).setInt16(0, 256, true);  // littleEndian
+
+				return new Int16Array(buffer)[0] === 256; // Int16Array uses the platform's endianness.
+			})();
 	};
 
 	/**
@@ -56,11 +69,20 @@ class modbusWords{
 		switch(byteLength){
 			case 2: {
 				const byteArray = new Uint8Array([
-					 (num & 0x000000FF),
-					 (num & 0x0000FF00) >> 8,
+					 (num & 0x00FF),
+					 (num & 0xFF00) >> 8,
 				]);
 
-				return [(byteArray[self.config.byteOrder[0]] << 8 | byteArray[self.config.byteOrder[1]])];
+				// return as BigEndian if 1st byte comes before 0th byte, otherwise return as Little Endian
+				for(const order of self.config.byteOrder){
+					if(order === 1){
+						return [(byteArray[1] << 8 | byteArray[0])];
+					}
+
+					if(order === 0){
+						return [(byteArray[0] << 8 | byteArray[1])];
+					}
+				}
 				break;
 			}
 
@@ -97,8 +119,7 @@ class modbusWords{
 
 		floatView[0] = num;
 
-		const intView = Array.from(new Uint8Array(buffer));
-		const arr = self._isLittleEndian ? intView : intView.reverse();
+		const arr = Array.from(new Uint8Array(buffer));
 
 		return [
 			(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
@@ -120,14 +141,13 @@ class modbusWords{
 
 		floatView[0] = num;
 
-		const intView = Array.from(new Uint8Array(buffer));
-		const arr = self._isLittleEndian ? intView : intView.reverse();
+		const arr = Array.from(new Uint8Array(buffer));
 
 		return [
 			(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
 			(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
-			(arr[4 + self.config.byteOrder[0]] << 8 | arr[4 + self.config.byteOrder[1]]),
-			(arr[4 + self.config.byteOrder[2]] << 8 | arr[4 + self.config.byteOrder[3]]),
+			(arr[self._byteOrderLength + self.config.byteOrder[0]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[1]]),
+			(arr[self._byteOrderLength + self.config.byteOrder[2]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[3]]),
 		];
 	};
 
@@ -177,41 +197,57 @@ class modbusWords{
 	};
 
 	/**
-	 * Convert array of uint16 into Buffer, if Buffer is passed instead, will return the passed Buffer
+	 * Convert Buffer or array of uint16 into Little Endian Buffer
 	 * @private
 	 * @param {Buffer|Array.<uint16>} words - number to be converted
 	 * @param {numberType} type - number data type
-	 * @return {number[]} - array of uint16 numbers
+	 * @return {Buffer}
 	 */
 	_wordsToBuffer(words){
 		const self = this;
 
-		if(Buffer.isBuffer(words)){
-			return words;
-		}
-
-		if(!Array.isArray(words)){
+		if(!Array.isArray(words) && !Buffer.isBuffer(words)){
 			throw `Should pass Array instead of ${typeof(words)}!`;
 		}
 
-		const len = words.length;
-		const tmp = [];
-		for(let idx = 0; idx < len; ++idx){
-			// in Big Endian format, MSB comes first
-			tmp.push(
-				(words[idx] & 0xFF00) >> 8,
-				(words[idx] & 0x00FF) >> 0,
-			);
+		const wordLength = words.length;
+		const byteLength = wordLength * 2;
+		const byteArray = (function(){
+				if(!Buffer.isBuffer(words)){
+					const _tmpArray = [];
+
+					for(let _w = 0; _w < wordLength; _w+=1){
+						_tmpArray.push((words[_w] & 0xFF00) >> 8);
+						_tmpArray.push((words[_w] & 0x00FF) >> 0);
+					}
+
+					return _tmpArray;
+				}
+
+				return Array.from(words);
+			})();
+
+		const reorderedArray = [];
+		for(let idx = 0, _counter = 0; _counter < byteLength; ++idx){
+			if(self.config.byteOrder[idx] >= byteLength){
+				continue;
+			}
+
+			const pos = self.config.byteOrder[idx] != undefined
+				? self.config.byteOrder[idx]
+				: self._byteOrderLength + self.config.byteOrder[idx - self._byteOrderLength];
+
+			reorderedArray[pos] = byteArray[_counter++];
 		}
 
-		return Buffer.from(tmp);
+		return Buffer.from(reorderedArray);
 	};
 
 	/**
 	 * Convert Words received from modbus to number
-	 * @param {Buffer|number[]} words - Buffer or array of uint16 numbers to be converted
+	 * @param {Buffer|Array.<uint16>} words - Buffer or array of uint16 numbers to be converted
 	 * @param {numberType} type - number data type
-	 * @param {?number} [digits] - number of decimal digits, will be default to set decimalDigits in config if left undefined
+	 * @param {?number} [digits] - number of decimal digits for float, will be default to set decimalDigits in config if left undefined
 	 * @return {number} - converted number
 	 */
 	wordsToNum(words, type, digits){
@@ -221,7 +257,7 @@ class modbusWords{
 			throw 'wordsToNum() : type must be string';
 		}
 
-		const _buffer = self._wordsToBuffer(words);
+		const _buffer = self._wordsToBuffer(words, self.byteLength(type));
 
 		switch(type.toUpperCase()){
 			case 'INT16': {
