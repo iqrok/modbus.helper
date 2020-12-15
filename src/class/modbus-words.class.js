@@ -43,10 +43,16 @@ class modbusWords{
 				decimalDigits,
 			};
 
+		/**
+		 * size of byte order, should return 4
+		 * storing the size, in case there is possibility to expand it in the future
+		 * @private
+		 * */
 		self._byteOrderLength = self.config.byteOrder.length,
 
 		/**
 		 * check if current process is in little Endian machine or not
+		 * @public
 		 * */
 		self.isLittleEndian = (function() {
 				const buffer = new ArrayBuffer(2);
@@ -199,7 +205,7 @@ class modbusWords{
 	/**
 	 * Convert Buffer or array of uint16 into Little Endian Buffer
 	 * @private
-	 * @param {Buffer|Array.<uint16>} words - number to be converted
+	 * @param {Buffer|Array.<uint16>} words - Buffer or array of uint16 numbers to be converted
 	 * @param {numberType} type - number data type
 	 * @return {Buffer}
 	 */
@@ -213,12 +219,12 @@ class modbusWords{
 		const wordLength = words.length;
 		const byteLength = wordLength * 2;
 		const byteArray = (function(){
-				if(!Buffer.isBuffer(words)){
+				if(Array.isArray(words)){
 					const _tmpArray = [];
 
-					for(let _w = 0; _w < wordLength; _w+=1){
-						_tmpArray.push((words[_w] & 0xFF00) >> 8);
-						_tmpArray.push((words[_w] & 0x00FF) >> 0);
+					for(const word of words){
+						_tmpArray.push((word & 0xFF00) >> 8);
+						_tmpArray.push((word & 0x00FF) >> 0);
 					}
 
 					return _tmpArray;
@@ -282,13 +288,17 @@ class modbusWords{
 
 			case 'FLOAT':
 			case 'FLOAT32': {
-				return _round(_buffer.readFloatLE(), digits == undefined ? self.config.decimalDigits : digits);
+				return digits == undefined && self.config.decimalDigits == undefined
+					? _buffer.readFloatLE()
+					: _round(_buffer.readFloatLE(), digits == undefined ? self.config.decimalDigits : digits);
 				break;
 			}
 
 			case 'DOUBLE':
 			case 'FLOAT64': {
-				return _round(_buffer.readDoubleLE(), digits == undefined ? self.config.decimalDigits : digits);
+				return digits == undefined && self.config.decimalDigits == undefined
+					? _buffer.readDoubleLE()
+					: _round(_buffer.readDoubleLE(), digits == undefined ? self.config.decimalDigits : digits);
 				break;
 			}
 
