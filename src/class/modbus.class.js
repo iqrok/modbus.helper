@@ -62,16 +62,6 @@ class modbus extends modbusWords{
 					return 'RTU';
 				}
 			})();
-
-		/**
-		 * check if current process is in little Endian machine or not
-		 * */
-		self._isLittleEndian = (function() {
-				const buffer = new ArrayBuffer(2);
-				new DataView(buffer).setInt16(0, 256, true);  // littleEndian
-
-				return new Int16Array(buffer)[0] === 256; // Int16Array uses the platform's endianness.
-			})();
 	}
 
 	/**
