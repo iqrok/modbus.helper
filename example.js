@@ -52,13 +52,11 @@ const numbers = [
 	},
 ];
 
-(async () => {
-	const values = [];
+async function routine(){
 	let address = 0;
 
 	for(const tmp of numbers){
-		console.log('==  ==================================');
-		console.log('address:', address);
+		console.log(`=============== REGISTERS ADDR: ${address} =====================`);
 
 		const value = modbus.numToWords(tmp.value, tmp.type);
 		const directConvertion = modbus.wordsToNum(value, tmp.type);
@@ -69,18 +67,35 @@ const numbers = [
 		console.log('write:',write);
 
 		const read = await modbus.readHoldingRegisters(address, modbus.wordsLength(tmp.type));
-		const number = modbus.wordsToNum(read, tmp.type, tmp.digits);
 		console.log('read:', read);
-		console.log('type:', tmp.type);
-		console.log('modbus:', tmp.value, number, number == tmp.value);
 
+		if(read){
+			const number = modbus.wordsToNum(read, tmp.type, tmp.digits);
+			console.log('type:', tmp.type);
+			console.log('modbus:', tmp.value, number, number == tmp.value);
+		}
+
+		// get next address by adding current address with data type length in words
 		address += modbus.wordsLength(tmp.type);
 	}
 
-	const writeCoils = await modbus.writeCoils(0, [1,0,0,1,0]);
+	console.log(`=============== COILS ADDR: ${address} =====================`);
+	const writeCoils = await modbus.writeCoils(address, [1,0,0,1,0]);
 	console.log('writeCoils', writeCoils);
-	const readCoils = await modbus.readCoils(0, 5);
+	const readCoils = await modbus.readCoils(address, 5);
 	console.log('readCoils', readCoils);
-	const readDiscreteInputs = await modbus.readDiscreteInputs(0, 5);
+	const readDiscreteInputs = await modbus.readDiscreteInputs(address, 5);
 	console.log('readDiscreteInputs', readDiscreteInputs);
-})();
+
+	console.log(`=============== END ${Date.now()} ==================`);
+
+	setTimeout(routine, 500);
+}
+
+routine();
+
+
+setTimeout(() => {
+		console.log('FINISHED !!!');
+		process.exit(0);
+	}, 5000);
