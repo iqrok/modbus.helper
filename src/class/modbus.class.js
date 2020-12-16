@@ -22,7 +22,7 @@ class modbus extends modbusWords{
 		super({byteOrder, decimalDigits});
 		const self = this;
 
-		self.config = {
+		self._config = {
 				ip,
 				port,
 				baud,
@@ -40,22 +40,22 @@ class modbus extends modbusWords{
 		 * Automatically set based on IP, port, and baud values
 		 * */
 		self._connectionType = (function(){
-				if(typeof(self.config.ip) === 'string' && String(self.config.ip).match(/\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}\b/)){
+				if(typeof(self._config.ip) === 'string' && String(self._config.ip).match(/\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}\b/)){
 					self._connectionOpt = {
-						dst: self.config.ip,
+						dst: self._config.ip,
 						options: {
-							port: self.config.port == undefined ? 502 : self.config.port,
+							port: self._config.port == undefined ? 502 : self._config.port,
 						},
 					};
 
 					return 'TCP';
 				}
 
-				if(typeof(self.config.port) === 'string' && typeof(self.config.baud) === 'number'){
+				if(typeof(self._config.port) === 'string' && typeof(self._config.baud) === 'number'){
 					self._connectionOpt = {
-						dst: self.config.port,
+						dst: self._config.port,
 						options: {
-							baudRate: self.config.baud,
+							baudRate: self._config.baud,
 						},
 					};
 
@@ -67,6 +67,7 @@ class modbus extends modbusWords{
 	/**
 	 * open connection to target modbus server
 	 * @private
+	 * @return {Promise} Will resolve client Object if successful, otherwise will reject error
 	 * */
 	_openClient(){
 		const self = this;
@@ -74,49 +75,37 @@ class modbus extends modbusWords{
 		return new Promise(function(resolve, reject) {
 			switch(self._connectionType){
 				case 'TCP': {
-					self._client.connectTCP(self._connectionOpt.dst, self._connectionOpt.options, function(err){
-						self._client.setID(self.config.id);
-						self._client.setTimeout(self.config.timeout);
-
-						if(err){
-							if(self.config.debug){
-								console.error('client open Error', err);
-							}
-
-							self._client.close();
-							return reject(err);
+					self._client.connectTCP(self._connectionOpt.dst, self._connectionOpt.options, function(error){
+						if(error){
+							return reject(error);
 						}
 
-						resolve(self._client.isOpen);
-						return;
+						self._client.setID(self._config.id);
+						self._client.setTimeout(self._config.timeout);
+
+						return resolve(self._client);
 					});
 
 					break;
 				}
 
 				case 'RTU': {
-					self._client.connectRTU(self._connectionOpt.dst, self._connectionOpt.options, function(err){
-						self._client.setID(self.config.id);
-						self._client.setTimeout(self.config.timeout);
-
-						if(err){
-							if(self.config.debug){
-								console.error('client open Error', err);
-							}
-
-							self._client.close();
-							return reject(err);
+					self._client.connectRTU(self._connectionOpt.dst, self._connectionOpt.options, function(error){
+						if(error){
+							return reject(error);
 						}
 
-						resolve(self._client.isOpen);
-						return;
+						self._client.setID(self._config.id);
+						self._client.setTimeout(self._config.timeout);
+
+						return resolve(self._client);
 					});
 
 					break;
 				}
 
 				default:{
-					reject('Error: Connection Type is not defined.', self._connectionType)
+					return reject('Error: Connection Type is not defined.')
 					break;
 				}
 			}
@@ -129,27 +118,17 @@ class modbus extends modbusWords{
 	 * @param {number} [len=1] - number of addresses to read
 	 * @return {Promise.<Buffer>|Promise.<Boolean>} - resolve false if reading is failed, otherwise resolve read Buffer
 	 * */
-	readInputRegisters(addr,len = 1){
+	readInputRegisters(addr, len = 1){
 		const self = this;
 
 		return self._openClient()
-			.then(response => {
-				return self._client.readInputRegisters(addr, len)
-					.then(data => data.buffer)
-					.catch(error => {
-						if(self.config.debug){
-							console.error('client.readInputRegisters error :', addr, error);
-						}
-
-						return Promise.reject(error);
-					});
-			})
+			.then(_client => _client.readInputRegisters(addr, len))
+			.then(response => response.buffer)
 			.catch(error => {
-				if(self.config.debug){
+				if(self._config.debug){
 					console.error('readInputRegisters error :', addr, error);
 				}
 
-				self._client.close();
 				return false;
 			})
 			.finally(() => {
@@ -163,27 +142,17 @@ class modbus extends modbusWords{
 	 * @param {number} [len=1] - number of addresses to read
 	 * @return {Promise.<Buffer>|Promise.<Boolean>} - resolve false if reading is failed, otherwise resolve read Buffer
 	 * */
-	readHoldingRegisters(addr,len = 1){
+	readHoldingRegisters(addr, len = 1){
 		const self = this;
 
 		return self._openClient()
-			.then(response => {
-				return self._client.readHoldingRegisters(addr, len)
-					.then(data => data.buffer)
-					.catch(error => {
-						if(self.config.debug){
-							console.error('client.readHoldingRegisters error :', addr, error);
-						}
-
-						return Promise.reject(error);
-					});
-			})
+			.then(_client => _client.readHoldingRegisters(addr, len))
+			.then(response => response.buffer)
 			.catch(error => {
-				if(self.config.debug){
+				if(self._config.debug){
 					console.error('readHoldingRegisters error :', addr, error);
 				}
 
-				self._client.close();
 				return false;
 			})
 			.finally(() => {
@@ -197,27 +166,17 @@ class modbus extends modbusWords{
 	 * @param {number} [len=1] - number of addresses to read
 	 * @return {Promise.<Boolean[]>|Promise.<Boolean>} - resolve false if reading is failed, otherwise resolve array of discrete inputs status
 	 * */
-	readDiscreteInputs(addr,len = 1){
+	readDiscreteInputs(addr, len = 1){
 		const self = this;
 
 		return self._openClient()
-			.then(response => {
-				return self._client.readDiscreteInputs(addr, len)
-					.then(data => data.data.slice(0,len))
-					.catch(error => {
-						if(self.config.debug){
-							console.error('client.readDiscreteInputs error :', addr, error);
-						}
-
-						return Promise.reject(error);
-					});
-			})
+			.then(_client => _client.readDiscreteInputs(addr, len))
+			.then(response => response.data.slice(0,len))
 			.catch(error => {
-				if(self.config.debug){
+				if(self._config.debug){
 					console.error('readDiscreteInputs error :', addr, error);
 				}
 
-				self._client.close();
 				return false;
 			})
 			.finally(() => {
@@ -231,27 +190,17 @@ class modbus extends modbusWords{
 	 * @param {number} [len=1] - number of addresses to read
 	 * @return {Promise.<Boolean[]>|Promise.<Boolean>} - resolve false if reading is failed, otherwise resolve array of coils status
 	 * */
-	readCoils(addr,len = 1){
+	readCoils(addr, len = 1){
 		const self = this;
 
 		return self._openClient()
-			.then(response => {
-				return self._client.readCoils(addr, len)
-					.then(data => data.data.slice(0,len))
-					.catch(error => {
-						if(self.config.debug){
-							console.error('client.readCoils error :', addr, error);
-						}
-
-						return Promise.reject(error);
-					});
-			})
+			.then(_client => _client.readCoils(addr, len))
+			.then(response => response.data.slice(0,len))
 			.catch(error => {
-				if(self.config.debug){
+				if(self._config.debug){
 					console.error('readCoils error :', addr, error);
 				}
 
-				self._client.close();
 				return false;
 			})
 			.finally(() => {
@@ -265,27 +214,17 @@ class modbus extends modbusWords{
 	 * @param {number} value - value to write
 	 * @return {Promise.<Object>|Promise.<Boolean>} - resolve false if reading is failed, otherwise resolve address and length of written registers
 	 * */
-	writeRegister(addr,value){
+	writeRegister(addr, value){
 		const self = this;
 
 		return self._openClient()
-			.then(response => {
-				return self._client.writeRegister(addr, value)
-					.then(data => data)
-					.catch(error => {
-						if(self.config.debug){
-							console.error('client.writeRegisters error :', addr, error);
-						}
-
-						return Promise.reject(error);
-					});
-			})
+			.then(_client => _client.writeRegister(addr, value))
+			.then(response => response)
 			.catch(error => {
-				if(self.config.debug){
+				if(self._config.debug){
 					console.error('writeRegister error :', addr, error);
 				}
 
-				self._client.close();
 				return false;
 			})
 			.finally(() => {
@@ -299,27 +238,17 @@ class modbus extends modbusWords{
 	 * @param {number[]} values - array of valuess to write
 	 * @return {Promise.<Object>|Promise.<Boolean>} - resolve false if reading is failed, otherwise resolve address and length of written registers
 	 * */
-	writeRegisters(addr,values){
+	writeRegisters(addr, values){
 		const self = this;
 
 		return self._openClient()
-			.then(response => {
-				return self._client.writeRegisters(addr, values)
-					.then(data => data)
-					.catch(error => {
-						if(self.config.debug){
-							console.error('client.writeRegisters error :', addr, error);
-						}
-
-						return Promise.reject(error);
-					});
-			})
+			.then(_client => _client.writeRegisters(addr, values))
+			.then(response => response)
 			.catch(error => {
-				if(self.config.debug){
+				if(self._config.debug){
 					console.error('writeRegisters error :', addr, error);
 				}
 
-				self._client.close();
 				return false;
 			})
 			.finally(() => {
@@ -333,27 +262,17 @@ class modbus extends modbusWords{
 	 * @param {boolean[]} values - array of values to write
 	 * @return {Promise.<Object>|Promise.<boolean>} - resolve false if reading is failed, otherwise resolve address and length of written registers
 	 * */
-	writeCoils(addr,values){
+	writeCoils(addr, values){
 		const self = this;
 
 		return self._openClient()
-			.then(response => {
-				return self._client.writeCoils(addr, values.map(value => value ? true : false))
-					.then(data => data)
-					.catch(error => {
-						if(self.config.debug){
-							console.error('client.writeCoils error :', addr, error);
-						}
-
-						return Promise.reject(error);
-					});
-			})
+			.then(_client => _client.writeCoils(addr, values.map(value => value ? true : false)))
+			.then(response => response)
 			.catch(error => {
-				if(self.config.debug){
+				if(self._config.debug){
 					console.error('writeCoils error :', addr, error);
 				}
 
-				self._client.close();
 				return false;
 			})
 			.finally(() => {
@@ -367,7 +286,7 @@ class modbus extends modbusWords{
 	 * @param {boolean} values - array of values to write
 	 * @return {Promise.<Object>|Promise.<boolean>} - resolve false if reading is failed, otherwise resolve address and length of written registers
 	 * */
-	writeCoil(addr,value){
+	writeCoil(addr, value){
 		const self = this;
 		return self.writeCoils(addr, [value]);
 	};
