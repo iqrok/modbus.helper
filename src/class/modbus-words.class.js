@@ -51,9 +51,10 @@ class modbusWords{
 		self._byteOrderLength = self.config.byteOrder.length,
 
 		self._bigEndianNotSwapped = (function(){
-				const lastOrder = undefined;
+				let lastOrder = undefined;
 				for(const order of self.config.byteOrder){
 					if(lastOrder === undefined){
+						lastOrder = order;
 						continue;
 					}
 
@@ -256,21 +257,18 @@ class modbusWords{
 				continue;
 			}
 
-			const _orderSwap = byteLength > self._byteOrderLength && self._bigEndianNotSwapped
-				? idx < self._byteOrderLength ? self._byteOrderLength : 0
-				: self._byteOrderLength;
-
-			const pos = idx < self._byteOrderLength
-				? _orderSwap + self.config.byteOrder[idx]
-				: _orderSwap + self.config.byteOrder[idx - self._byteOrderLength];
-
-			console.log(_orderSwap, self.config.byteOrder[idx - self._byteOrderLength], _orderSwap + self.config.byteOrder[idx - self._byteOrderLength]);
-			//~ console.log('idx', idx >= self._byteOrderLength, idx - self._byteOrderLength, idx,  pos, self.config.byteOrder[idx], byteArray[_counter].toString(16));
+			const pos = self.config.byteOrder[idx] != undefined
+				? self.config.byteOrder[idx]
+				: self._byteOrderLength + self.config.byteOrder[idx - self._byteOrderLength];
 
 			reorderedArray[pos] = byteArray[_counter++];
 		}
-
-		return Buffer.from(reorderedArray);
+		console.log(byteLength > self._byteOrderLength && self._bigEndianNotSwapped);
+		return Buffer.from(
+			byteLength > self._byteOrderLength && self._bigEndianNotSwapped
+				? [  ...reorderedArray.slice(4,8), ...reorderedArray.slice(0,4), ]
+				: reorderedArray
+		);
 	};
 
 	/**
