@@ -167,12 +167,19 @@ class modbusWords{
 
 		const arr = Array.from(new Uint8Array(buffer));
 
-		return [
-			(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
-			(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
-			(arr[self._byteOrderLength + self.config.byteOrder[0]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[1]]),
-			(arr[self._byteOrderLength + self.config.byteOrder[2]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[3]]),
-		];
+		return self._bigEndianNotSwapped
+			? [
+				(arr[self._byteOrderLength + self.config.byteOrder[0]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[1]]),
+				(arr[self._byteOrderLength + self.config.byteOrder[2]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[3]]),
+				(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
+				(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
+			]
+			: [
+				(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
+				(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
+				(arr[self._byteOrderLength + self.config.byteOrder[0]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[1]]),
+				(arr[self._byteOrderLength + self.config.byteOrder[2]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[3]]),
+			];
 	};
 
 	/**
@@ -263,7 +270,7 @@ class modbusWords{
 
 			reorderedArray[pos] = byteArray[_counter++];
 		}
-		console.log(byteLength > self._byteOrderLength && self._bigEndianNotSwapped);
+
 		return Buffer.from(
 			byteLength > self._byteOrderLength && self._bigEndianNotSwapped
 				? [  ...reorderedArray.slice(4,8), ...reorderedArray.slice(0,4), ]
@@ -286,7 +293,7 @@ class modbusWords{
 		}
 
 		const _buffer = self._wordsToBuffer(words, self.byteLength(type));
-		console.log(_buffer);
+
 		switch(type.toUpperCase()){
 			case 'INT16': {
 				return _buffer.readInt16LE();
