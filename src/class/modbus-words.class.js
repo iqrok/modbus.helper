@@ -50,6 +50,23 @@ class modbusWords{
 		 * */
 		self._byteOrderLength = self.config.byteOrder.length,
 
+		self._bigEndianNotSwapped = (function(){
+				const lastOrder = undefined;
+				for(const order of self.config.byteOrder){
+					if(lastOrder === undefined){
+						continue;
+					}
+
+					if(lastOrder < order){
+						return false;
+					}
+
+					lastOrder = order;
+				}
+
+				return true;
+			})();
+
 		/**
 		 * check if current process is in little Endian machine or not
 		 * @public
@@ -217,7 +234,6 @@ class modbusWords{
 		}
 
 		const wordLength = words.length;
-		const byteLength = wordLength * 2;
 		const byteArray = (function(){
 				if(Array.isArray(words)){
 					const _tmpArray = [];
@@ -233,15 +249,23 @@ class modbusWords{
 				return Array.from(words);
 			})();
 
+		const byteLength = byteArray.length;
 		const reorderedArray = [];
 		for(let idx = 0, _counter = 0; _counter < byteLength; ++idx){
 			if(self.config.byteOrder[idx] >= byteLength){
 				continue;
 			}
 
-			const pos = self.config.byteOrder[idx] != undefined
-				? self.config.byteOrder[idx]
-				: self._byteOrderLength + self.config.byteOrder[idx - self._byteOrderLength];
+			const _orderSwap = byteLength > self._byteOrderLength && self._bigEndianNotSwapped
+				? idx < self._byteOrderLength ? self._byteOrderLength : 0
+				: self._byteOrderLength;
+
+			const pos = idx < self._byteOrderLength
+				? _orderSwap + self.config.byteOrder[idx]
+				: _orderSwap + self.config.byteOrder[idx - self._byteOrderLength];
+
+			console.log(_orderSwap, self.config.byteOrder[idx - self._byteOrderLength], _orderSwap + self.config.byteOrder[idx - self._byteOrderLength]);
+			//~ console.log('idx', idx >= self._byteOrderLength, idx - self._byteOrderLength, idx,  pos, self.config.byteOrder[idx], byteArray[_counter].toString(16));
 
 			reorderedArray[pos] = byteArray[_counter++];
 		}
@@ -264,7 +288,7 @@ class modbusWords{
 		}
 
 		const _buffer = self._wordsToBuffer(words, self.byteLength(type));
-
+		console.log(_buffer);
 		switch(type.toUpperCase()){
 			case 'INT16': {
 				return _buffer.readInt16LE();

@@ -18,7 +18,7 @@ class modbus extends modbusWords{
 	 * @param {number} [timeout=100] - timeout in ms
 	 * @param {boolean} [debug=false] - Print debug message
 	 */
-	constructor({ip, port, baud, id = 1, byteOrder = [1,0,3,2], decimalDigits, debug = false, timeout = 100}) {
+	constructor({ip, port, baud, id = 1, byteOrder = [1,0,3,2], decimalDigits, debug = false, parity = 'none', stopBits = 1, timeout = 100}) {
 		super({byteOrder, decimalDigits});
 		const self = this;
 
@@ -30,6 +30,8 @@ class modbus extends modbusWords{
 				byteOrder,
 				decimalDigits,
 				debug,
+				parity,
+				stopBits,
 				timeout,
 			};
 
@@ -56,6 +58,8 @@ class modbus extends modbusWords{
 						dst: self._config.port,
 						options: {
 							baudRate: self._config.baud,
+							parity: self._config.parity,
+							stopBits: self._config.stopBits,
 						},
 					};
 
