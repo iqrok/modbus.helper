@@ -12,53 +12,51 @@ const modbus = new __modbus({
 console.log('is Little Endian?', modbus.isLittleEndian); // true or false
 
 const numbers = [
+	//~ {
+		//~ value: -32,
+		//~ type: 'int16',
+	//~ },
+	//~ {
+		//~ value: -32,
+		//~ type: 'uint16',
+	//~ },
+	//~ {
+		//~ value: 64,
+		//~ type: 'uint16',
+	//~ },
+	//~ {
+		//~ value: 0xff11eeaa,
+		//~ type: 'uint32',
+	//~ },
+	//~ {
+		//~ value: 123456,
+		//~ type: 'int32',
+	//~ },
+	//~ {
+		//~ value: -123456,
+		//~ type: 'int32',
+	//~ },
+	//~ {
+		//~ value: 0.123456,
+		//~ type: 'float32',
+		//~ digits: 6,
+	//~ },
+	//~ {
+		//~ value: -10.123456,
+		//~ type: 'float32',
+		//~ digits: 6,
+	//~ },
 	{
-		value: -32,
-		type: 'int16',
-	},
-	{
-		value: -32,
-		type: 'uint16',
-	},
-	{
-		value: 64,
-		type: 'uint16',
-	},
-	{
-		value: 0xff11eeaa,
-		type: 'uint32',
-	},
-	{
-		value: 123456,
-		type: 'int32',
-	},
-	{
-		value: -123456,
-		type: 'int32',
-	},
-	{
-		value: 0.123456,
-		type: 'float32',
-		digits: 6,
-	},
-	{
-		value: -10.123456,
-		type: 'float32',
-		digits: 6,
-	},
-	{
-		value: 0.1234567890123456789,
+		value: 0.23522297317322227,
 		type: 'float64',
 	},
 ];
 
-(async () => {
-	const values = [];
+async function routine(){
 	let address = 0;
 
 	for(const tmp of numbers){
-		console.log('==  ==================================');
-		console.log('address:', address);
+		console.log(`=============== REGISTERS ADDR: ${address} =====================`);
 
 		const value = modbus.numToWords(tmp.value, tmp.type);
 		const directConvertion = modbus.wordsToNum(value, tmp.type);
@@ -69,18 +67,35 @@ const numbers = [
 		console.log('write:',write);
 
 		const read = await modbus.readHoldingRegisters(address, modbus.wordsLength(tmp.type));
-		const number = modbus.wordsToNum(read, tmp.type, tmp.digits);
 		console.log('read:', read);
-		console.log('type:', tmp.type);
-		console.log('modbus:', tmp.value, number, number == tmp.value);
 
+		if(read){
+			const number = modbus.wordsToNum(read, tmp.type, tmp.digits);
+			console.log('type:', tmp.type);
+			console.log('modbus:', tmp.value, number, number == tmp.value);
+		}
+
+		// get next address by adding current address with data type length in words
 		address += modbus.wordsLength(tmp.type);
 	}
 
-	const writeCoils = await modbus.writeCoils(0, [1,0,0,1,0]);
-	console.log('writeCoils', writeCoils);
-	const readCoils = await modbus.readCoils(0, 5);
-	console.log('readCoils', readCoils);
-	const readDiscreteInputs = await modbus.readDiscreteInputs(0, 5);
-	console.log('readDiscreteInputs', readDiscreteInputs);
-})();
+	//~ console.log(`=============== COILS ADDR: ${address} =====================`);
+	//~ const writeCoils = await modbus.writeCoils(address, [1,0,0,1,0]);
+	//~ console.log('writeCoils', writeCoils);
+	//~ const readCoils = await modbus.readCoils(address, 5);
+	//~ console.log('readCoils', readCoils);
+	//~ const readDiscreteInputs = await modbus.readDiscreteInputs(address, 5);
+	//~ console.log('readDiscreteInputs', readDiscreteInputs);
+
+	console.log(`=============== END ${Date.now()} ==================`);
+	console.log(modbus.config.longByteOrder);
+	//~ setTimeout(routine, 500);
+}
+
+routine();
+
+
+setTimeout(() => {
+		console.log('FINISHED !!!');
+		process.exit(0);
+	}, 1000);

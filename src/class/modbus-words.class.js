@@ -50,6 +50,24 @@ class modbusWords{
 		 * */
 		self._byteOrderLength = self.config.byteOrder.length,
 
+		self._bigEndianNotSwapped = (function(){
+				let lastOrder = undefined;
+				for(const order of self.config.byteOrder){
+					if(lastOrder === undefined){
+						lastOrder = order;
+						continue;
+					}
+
+					if(lastOrder < order){
+						return false;
+					}
+
+					lastOrder = order;
+				}
+
+				return true;
+			})();
+
 		/**
 		 * check if current process is in little Endian machine or not
 		 * @public
@@ -149,12 +167,19 @@ class modbusWords{
 
 		const arr = Array.from(new Uint8Array(buffer));
 
-		return [
-			(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
-			(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
-			(arr[self._byteOrderLength + self.config.byteOrder[0]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[1]]),
-			(arr[self._byteOrderLength + self.config.byteOrder[2]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[3]]),
-		];
+		return self._bigEndianNotSwapped
+			? [
+				(arr[self._byteOrderLength + self.config.byteOrder[0]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[1]]),
+				(arr[self._byteOrderLength + self.config.byteOrder[2]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[3]]),
+				(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
+				(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
+			]
+			: [
+				(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
+				(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
+				(arr[self._byteOrderLength + self.config.byteOrder[0]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[1]]),
+				(arr[self._byteOrderLength + self.config.byteOrder[2]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[3]]),
+			];
 	};
 
 	/**
@@ -217,7 +242,6 @@ class modbusWords{
 		}
 
 		const wordLength = words.length;
-		const byteLength = wordLength * 2;
 		const byteArray = (function(){
 				if(Array.isArray(words)){
 					const _tmpArray = [];
@@ -233,6 +257,7 @@ class modbusWords{
 				return Array.from(words);
 			})();
 
+		const byteLength = byteArray.length;
 		const reorderedArray = [];
 		for(let idx = 0, _counter = 0; _counter < byteLength; ++idx){
 			if(self.config.byteOrder[idx] >= byteLength){
@@ -246,7 +271,11 @@ class modbusWords{
 			reorderedArray[pos] = byteArray[_counter++];
 		}
 
-		return Buffer.from(reorderedArray);
+		return Buffer.from(
+			byteLength > self._byteOrderLength && self._bigEndianNotSwapped
+				? [  ...reorderedArray.slice(4,8), ...reorderedArray.slice(0,4), ]
+				: reorderedArray
+		);
 	};
 
 	/**
