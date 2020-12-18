@@ -15,6 +15,11 @@ function _round(num, digits = 2){
 	return Math.round((num + Number.EPSILON) * pow) / pow;
 }
 
+let _config = {
+		byteOrder: undefined,
+		decimalDigits: undefined,
+	};
+
 /**
  * @class
  * @package
@@ -38,21 +43,19 @@ class modbusWords{
 	_initialize({byteOrder, decimalDigits}){
 		const self = this;
 
-		self.config = {
-				byteOrder,
-				decimalDigits,
-			};
+		_config.byteOrder = byteOrder;
+		_config.decimalDigits = decimalDigits;
 
 		/**
 		 * size of byte order, should return 4
 		 * storing the size, in case there is possibility to expand it in the future
 		 * @private
 		 * */
-		self._byteOrderLength = self.config.byteOrder.length,
+		self._byteOrderLength = _config.byteOrder.length,
 
 		self._bigEndianNotSwapped = (function(){
 				let lastOrder = undefined;
-				for(const order of self.config.byteOrder){
+				for(const order of _config.byteOrder){
 					if(lastOrder === undefined){
 						lastOrder = order;
 						continue;
@@ -98,7 +101,7 @@ class modbusWords{
 				]);
 
 				// return as BigEndian if 1st byte comes before 0th byte, otherwise return as Little Endian
-				for(const order of self.config.byteOrder){
+				for(const order of _config.byteOrder){
 					if(order === 1){
 						return [(byteArray[1] << 8 | byteArray[0])];
 					}
@@ -119,8 +122,8 @@ class modbusWords{
 				]);
 
 				return [
-					(byteArray[self.config.byteOrder[0]] << 8 | byteArray[self.config.byteOrder[1]]),
-					(byteArray[self.config.byteOrder[2]] << 8 | byteArray[self.config.byteOrder[3]]),
+					(byteArray[_config.byteOrder[0]] << 8 | byteArray[_config.byteOrder[1]]),
+					(byteArray[_config.byteOrder[2]] << 8 | byteArray[_config.byteOrder[3]]),
 				];
 				break;
 			}
@@ -146,8 +149,8 @@ class modbusWords{
 		const arr = Array.from(new Uint8Array(buffer));
 
 		return [
-			(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
-			(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
+			(arr[_config.byteOrder[0]] << 8 | arr[_config.byteOrder[1]]),
+			(arr[_config.byteOrder[2]] << 8 | arr[_config.byteOrder[3]]),
 		];
 	};
 
@@ -169,16 +172,16 @@ class modbusWords{
 
 		return self._bigEndianNotSwapped
 			? [
-				(arr[self._byteOrderLength + self.config.byteOrder[0]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[1]]),
-				(arr[self._byteOrderLength + self.config.byteOrder[2]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[3]]),
-				(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
-				(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
+				(arr[self._byteOrderLength + _config.byteOrder[0]] << 8 | arr[self._byteOrderLength + _config.byteOrder[1]]),
+				(arr[self._byteOrderLength + _config.byteOrder[2]] << 8 | arr[self._byteOrderLength + _config.byteOrder[3]]),
+				(arr[_config.byteOrder[0]] << 8 | arr[_config.byteOrder[1]]),
+				(arr[_config.byteOrder[2]] << 8 | arr[_config.byteOrder[3]]),
 			]
 			: [
-				(arr[self.config.byteOrder[0]] << 8 | arr[self.config.byteOrder[1]]),
-				(arr[self.config.byteOrder[2]] << 8 | arr[self.config.byteOrder[3]]),
-				(arr[self._byteOrderLength + self.config.byteOrder[0]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[1]]),
-				(arr[self._byteOrderLength + self.config.byteOrder[2]] << 8 | arr[self._byteOrderLength + self.config.byteOrder[3]]),
+				(arr[_config.byteOrder[0]] << 8 | arr[_config.byteOrder[1]]),
+				(arr[_config.byteOrder[2]] << 8 | arr[_config.byteOrder[3]]),
+				(arr[self._byteOrderLength + _config.byteOrder[0]] << 8 | arr[self._byteOrderLength + _config.byteOrder[1]]),
+				(arr[self._byteOrderLength + _config.byteOrder[2]] << 8 | arr[self._byteOrderLength + _config.byteOrder[3]]),
 			];
 	};
 
@@ -260,13 +263,13 @@ class modbusWords{
 		const byteLength = byteArray.length;
 		const reorderedArray = [];
 		for(let idx = 0, _counter = 0; _counter < byteLength; ++idx){
-			if(self.config.byteOrder[idx] >= byteLength){
+			if(_config.byteOrder[idx] >= byteLength){
 				continue;
 			}
 
-			const pos = self.config.byteOrder[idx] != undefined
-				? self.config.byteOrder[idx]
-				: self._byteOrderLength + self.config.byteOrder[idx - self._byteOrderLength];
+			const pos = _config.byteOrder[idx] != undefined
+				? _config.byteOrder[idx]
+				: self._byteOrderLength + _config.byteOrder[idx - self._byteOrderLength];
 
 			reorderedArray[pos] = byteArray[_counter++];
 		}
@@ -317,17 +320,17 @@ class modbusWords{
 
 			case 'FLOAT':
 			case 'FLOAT32': {
-				return digits == undefined && self.config.decimalDigits == undefined
+				return digits == undefined && _config.decimalDigits == undefined
 					? _buffer.readFloatLE()
-					: _round(_buffer.readFloatLE(), digits == undefined ? self.config.decimalDigits : digits);
+					: _round(_buffer.readFloatLE(), digits == undefined ? _config.decimalDigits : digits);
 				break;
 			}
 
 			case 'DOUBLE':
 			case 'FLOAT64': {
-				return digits == undefined && self.config.decimalDigits == undefined
+				return digits == undefined && _config.decimalDigits == undefined
 					? _buffer.readDoubleLE()
-					: _round(_buffer.readDoubleLE(), digits == undefined ? self.config.decimalDigits : digits);
+					: _round(_buffer.readDoubleLE(), digits == undefined ? _config.decimalDigits : digits);
 				break;
 			}
 
@@ -344,6 +347,8 @@ class modbusWords{
 	 * @return {number} - data type size in bytes
 	 */
 	byteLength(type){
+		const self = this;
+
 		if(!type || typeof(type) !== 'string'){
 			throw 'byteLength() : type must be string';
 		}
@@ -370,10 +375,23 @@ class modbusWords{
 			}
 
 			default: {
-				return 0;
+				return self._getByteSizeFromString(type);
 				break;
 			};
 		}
+	};
+
+
+	/**
+	 * Get byte size from tpye name, i.e. 'FLOAT64' will return 64. If no number is found, will return 0
+	 * @param {type} type - data type name
+	 * @return {number} - data type size in byte
+	 */
+	_getByteSizeFromString(type){
+		const numbers = String(type).match(/(([\d])+$)/g);
+		return numbers
+			? +numbers[0]
+			: 0;
 	};
 
 	/**
