@@ -85,6 +85,7 @@ class modbus extends modbusWords{
 							return reject(error);
 						}
 
+						self._client.isDebugEnabled = self._config.debug;
 						self._client.setID(self._config.id);
 						self._client.setTimeout(self._config.timeout);
 
@@ -95,11 +96,12 @@ class modbus extends modbusWords{
 				}
 
 				case 'RTU': {
-					self._client.connectRTU(self._connectionOpt.dst, self._connectionOpt.options, function(error){
+					self._client.connectRTUBuffered(self._connectionOpt.dst, self._connectionOpt.options, function(error){
 						if(error){
 							return reject(error);
 						}
 
+						self._client.isDebugEnabled = self._config.debug;
 						self._client.setID(self._config.id);
 						self._client.setTimeout(self._config.timeout);
 
