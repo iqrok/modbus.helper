@@ -335,7 +335,7 @@ class modbusWords{
 			}
 
 			default: {
-				return _buffer.readUint16LE();
+				return words.toString();
 				break;
 			}
 		}
