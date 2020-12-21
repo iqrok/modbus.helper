@@ -12,40 +12,40 @@ const modbus = new __modbus({
 console.log('is Little Endian?', modbus.isLittleEndian); // true or false
 
 const numbers = [
-	//~ {
-		//~ value: -32,
-		//~ type: 'int16',
-	//~ },
-	//~ {
-		//~ value: -32,
-		//~ type: 'uint16',
-	//~ },
-	//~ {
-		//~ value: 64,
-		//~ type: 'uint16',
-	//~ },
-	//~ {
-		//~ value: 0xff11eeaa,
-		//~ type: 'uint32',
-	//~ },
-	//~ {
-		//~ value: 123456,
-		//~ type: 'int32',
-	//~ },
-	//~ {
-		//~ value: -123456,
-		//~ type: 'int32',
-	//~ },
-	//~ {
-		//~ value: 0.123456,
-		//~ type: 'float32',
-		//~ digits: 6,
-	//~ },
-	//~ {
-		//~ value: -10.123456,
-		//~ type: 'float32',
-		//~ digits: 6,
-	//~ },
+	{
+		value: -32,
+		type: 'int16',
+	},
+	{
+		value: -32,
+		type: 'uint16',
+	},
+	{
+		value: 64,
+		type: 'uint16',
+	},
+	{
+		value: 0xff11eeaa,
+		type: 'uint32',
+	},
+	{
+		value: 123456,
+		type: 'int32',
+	},
+	{
+		value: -123456,
+		type: 'int32',
+	},
+	{
+		value: 0.123456,
+		type: 'float32',
+		digits: 6,
+	},
+	{
+		value: -10.123456,
+		type: 'float32',
+		digits: 6,
+	},
 	{
 		value: 0.23522297317322227,
 		type: 'float64',
@@ -79,17 +79,17 @@ async function routine(){
 		address += modbus.wordsLength(tmp.type);
 	}
 
-	//~ console.log(`=============== COILS ADDR: ${address} =====================`);
-	//~ const writeCoils = await modbus.writeCoils(address, [1,0,0,1,0]);
-	//~ console.log('writeCoils', writeCoils);
-	//~ const readCoils = await modbus.readCoils(address, 5);
-	//~ console.log('readCoils', readCoils);
-	//~ const readDiscreteInputs = await modbus.readDiscreteInputs(address, 5);
-	//~ console.log('readDiscreteInputs', readDiscreteInputs);
+	console.log(`=============== COILS ADDR: ${address} =====================`);
+	const writeCoils = await modbus.writeCoils(address, [1,0,0,1,0]);
+	console.log('writeCoils', writeCoils);
+	const readCoils = await modbus.readCoils(address, 5);
+	console.log('readCoils', readCoils);
+	const readDiscreteInputs = await modbus.readDiscreteInputs(address, 5);
+	console.log('readDiscreteInputs', readDiscreteInputs);
 
 	console.log(`=============== END ${Date.now()} ==================`);
 	console.log(modbus.config.longByteOrder);
-	//~ setTimeout(routine, 500);
+	setTimeout(routine, 500);
 }
 
 routine();
@@ -98,4 +98,4 @@ routine();
 setTimeout(() => {
 		console.log('FINISHED !!!');
 		process.exit(0);
-	}, 1000);
+	}, 5000);
