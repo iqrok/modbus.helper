@@ -3,7 +3,7 @@ const modbus = new __modbus({
 		ip: '127.0.0.1',
 		port: 502,
 		id: 1,
-		byteOrder: [1,0,3,2],
+		wordSwapped: true,
 		decimalDigits: null,
 		debug: true,
 		timeout: 1000,
@@ -93,7 +93,6 @@ async function routine(){
 }
 
 routine();
-
 
 setTimeout(() => {
 		console.log('FINISHED !!!');
