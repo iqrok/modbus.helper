@@ -1,10 +1,10 @@
 {
   "name": "@iqrok/modbus.helper",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Modbus helper. Reading and writing via modbus-serial package",
   "main": "src/class/modbus.class.js",
   "scripts": {
-    "test": "node test.js"
+    "test": "node example.js"
   },
   "repository": {
     "type": "git",
